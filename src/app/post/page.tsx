@@ -3,9 +3,16 @@ import React from "react";
 import { useState } from "react";
 import { Button } from '@/components/ui/button';
 import { ListChecks, AlertTriangle } from 'lucide-react';
-
+import { supabase } from "@/supabase";
+import { useRouter } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { Loader2 } from "lucide-react";
 
 const Post = () =>{
+    const router = useRouter();
+    const { publicKey } = useWallet();
+    
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const [formData, setFormData] = useState({
         title : "",
         category:"Dev",
@@ -14,11 +21,47 @@ const Post = () =>{
         requirements : "",
     });
 
+
     //Form Handler
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const {name, value} = e.target;
         setFormData(prev => ({ ...prev , [name]: value }));
     }
+
+
+    const handleSubmitted = async () => {
+        if(!publicKey) return alert("Please connect your wallet");
+        if (!formData.title || !formData.budget) return alert("Please provide the title and budget");
+        setIsSubmitting(true);
+
+        try{
+
+            const { error } = await supabase
+            .from('jobs')
+            .insert ([{
+                title: formData.title,
+                category:formData.category,
+                budget:parseFloat(formData.budget),
+                description: formData.description,
+                requirements: formData.requirements,
+                client_wallet : publicKey.toString(),
+                status:'open',
+            }])
+
+            if(error) throw error;
+
+            alert("Job posted successfully");
+            router.push('/dashboard')
+
+        } catch (error: any) {
+            console.error("Error",  error);
+            alert("Error posting job" + error.message)
+        } finally{
+            setIsSubmitting(false);
+        }
+        }
+    
+
     return(
         <div className="min-h-screen">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center relative-z-10">
@@ -54,10 +97,11 @@ const Post = () =>{
                             onChange={handleChange}
                             >
                                 <option value="Dev">Developer</option>
-                                <option value="Dev">Smart contract</option>
+                                <option value="Smart Contract">Smart contract</option>
                                 <option value="Writing">Writing</option>
                                 <option value="Marketing">Marketing</option>
                                 <option value="Design">Designer</option>
+                                <option value="Audit">Audit</option>
                             </select>
                         </div>
                         
@@ -115,9 +159,16 @@ const Post = () =>{
                         <div className="pt-4">
                             <Button 
                                 className="w-full bg-[#14F195] hover:bg-[#10c479] text-black font-bold py-6 text-lg rounded-lg transition-all"
-                                onClick={() => alert("Job Posted! (Simulated)")}
+                                onClick={handleSubmitted}
+                                disabled = {isSubmitting}
                             >
-                                Post Job
+                                 {isSubmitting ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="w-5 h-5 animate-spin" /> Publishing...
+                                </span>
+                            ) : (
+                                "Post Job"
+                            )}
                             </Button>
                         </div>
 

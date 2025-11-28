@@ -1,155 +1,200 @@
 "use client";
-import React, { useState } from 'react';
-import { Lock, Eye, CheckCircle, AlertCircle } from 'lucide-react';
-
-// 1. Mock Data for CLIENT View (Jobs I Posted)
-const CLIENT_ORDERS = [
-  { id: 1, title: "Solana SPL Token Mint UI", freelancer: "@alex_rust", price: 150, status: "funded", date: "Nov 24" },
-  { id: 2, title: "Premium 3D Assets", freelancer: "@pixel_art", price: 300, status: "review", date: "Submitted 2h ago" },
-];
-
-// 2. Mock Data for FREELANCER View (Jobs I'm Working On)
-const FREELANCER_GIGS = [
-  { id: 101, title: "Discord Community Setup", client: "@dao_leader", price: 400, status: "completed", date: "Oct 12" },
-  { id: 102, title: "Rust Smart Contract Audit", client: "@defi_protocol", price: 800, status: "funded", date: "Due Dec 01" },
-];
+import React, { useState, useEffect } from 'react';
+import { Lock, Eye, CheckCircle, Clock, FileText, Loader2, X, User } from 'lucide-react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { supabase } from '@/supabase';
 
 export default function DashboardPage() {
-  // State to toggle between tabs
+  const { publicKey } = useWallet();
   const [view, setView] = useState<'client' | 'freelancer'>('client');
+  
+  // Data State
+  const [clientJobs, setClientJobs] = useState<any[]>([]);
+  const [freelancerApps, setFreelancerApps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
+
+  // Fetch Dashboard Data
+  useEffect(() => {
+    if (!publicKey) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const wallet = publicKey.toString();
+
+        // 1. Jobs I Posted
+        const { data: myJobs } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('client_wallet', wallet)
+          .order('created_at', { ascending: false });
+
+        if (myJobs) setClientJobs(myJobs);
+
+        // 2. Jobs I Applied To
+        const { data: myApps } = await supabase
+          .from('applications')
+          .select('*, jobs(title, budget)')
+          .eq('freelancer_wallet', wallet)
+          .order('created_at', { ascending: false });
+
+        if (myApps) setFreelancerApps(myApps);
+
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [publicKey]);
+
+  // Handler: Fetch Applicants for a Job
+  const handleViewApplicants = async (jobId: string) => {
+    setSelectedJobId(jobId); // Open Modal
+    setLoadingApplicants(true);
+    
+    try {
+      const { data } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('job_id', jobId);
+      
+      setApplicants(data || []);
+    } catch (error) {
+      console.error("Error fetching applicants:", error);
+    } finally {
+      setLoadingApplicants(false);
+    }
+  };
+
+  const handleHire = (applicationId: string) => {
+      alert(`Hiring logic for application ${applicationId} coming in Phase 4!`);
+  }
+
+  if (!publicKey) return <div className="min-h-screen p-20 text-center text-gray-500">Please connect wallet.</div>;
 
   return (
-    <div className="min-h-screen p-8 max-w-5xl mx-auto">
+    <div className="min-h-screen p-8 max-w-5xl mx-auto relative">
       
       {/* Header & Tabs */}
       <div className="flex flex-col md:flex-row justify-between items-end mb-8">
-        <h1 className="text-3xl font-bold text-white">My Orders</h1>
-        
-        <div className="bg-[#1a1b23] p-1 rounded-lg border border-white/10 inline-flex mt-4 md:mt-0">
+        <h1 className="text-3xl font-bold text-white">My Dashboard</h1>
+        <div className="bg-[#1a1b23] p-1 rounded-lg border border-white/10 inline-flex">
           <button 
             onClick={() => setView('client')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              view === 'client' 
-              ? 'bg-[#9945FF] text-white shadow-lg' 
-              : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${view === 'client' ? 'bg-[#9945FF] text-white' : 'text-gray-400 hover:text-white'}`}
           >
-            As Client (Hiring)
+            Posted Jobs
           </button>
           <button 
             onClick={() => setView('freelancer')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              view === 'freelancer' 
-              ? 'bg-[#14F195] text-black font-bold shadow-lg' 
-              : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition ${view === 'freelancer' ? 'bg-[#14F195] text-black font-bold' : 'text-gray-400 hover:text-white'}`}
           >
-            As Freelancer (Working)
+            My Applications
           </button>
         </div>
       </div>
 
-      {/* CLIENT VIEW LIST */}
-      {view === 'client' && (
-        <div className="space-y-4">
-          {CLIENT_ORDERS.map((order) => (
-            <OrderCard 
-              key={order.id} 
-              role="client"
-              title={order.title} 
-              user={order.freelancer} 
-              price={order.price} 
-              status={order.status as any}
-              date={order.date}
-            />
-          ))}
-          {CLIENT_ORDERS.length === 0 && <p className="text-gray-500">You haven't hired anyone yet.</p>}
-        </div>
+      {loading ? <Loader2 className="animate-spin mx-auto text-gray-500"/> : (
+        <>
+          {/* CLIENT VIEW */}
+          {view === 'client' && (
+            <div className="space-y-4">
+              {clientJobs.map((job) => (
+                <div key={job.id} className="bg-[#1a1b23] border border-white/5 p-6 rounded-xl flex justify-between items-center gap-6">
+                    <div>
+                        <h3 className="font-bold text-white text-lg">{job.title}</h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                            <span>Budget: {job.budget} USDC</span>
+                            <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                            <span>Status: {job.status}</span>
+                        </div>
+                    </div>
+                    {job.status === 'open' && (
+                        <button 
+                            onClick={() => handleViewApplicants(job.id)}
+                            className="bg-white/10 text-white px-4 py-2 rounded-lg text-sm hover:bg-white/20 transition border border-white/10"
+                        >
+                            View Applicants
+                        </button>
+                    )}
+                </div>
+              ))}
+              {clientJobs.length === 0 && <p className="text-gray-500 text-center">No jobs posted.</p>}
+            </div>
+          )}
+
+          {/* FREELANCER VIEW */}
+          {view === 'freelancer' && (
+            <div className="space-y-4">
+              {freelancerApps.map((app) => (
+                <div key={app.id} className="bg-[#1a1b23] border border-white/5 p-6 rounded-xl flex justify-between items-center">
+                    <div>
+                        <h3 className="font-bold text-white text-lg">{app.jobs?.title || "Unknown Job"}</h3>
+                        <div className="text-sm text-gray-400">Applied: {new Date(app.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div className="px-4 py-2 rounded-full border bg-yellow-500/10 border-yellow-500/20 text-yellow-500 text-sm font-bold">
+                        {app.status}
+                    </div>
+                </div>
+              ))}
+              {freelancerApps.length === 0 && <p className="text-gray-500 text-center">No applications yet.</p>}
+            </div>
+          )}
+        </>
       )}
 
-      {/* FREELANCER VIEW LIST */}
-      {view === 'freelancer' && (
-        <div className="space-y-4">
-          {FREELANCER_GIGS.map((gig) => (
-            <OrderCard 
-              key={gig.id} 
-              role="freelancer"
-              title={gig.title} 
-              user={gig.client} 
-              price={gig.price} 
-              status={gig.status as any}
-              date={gig.date}
-            />
-          ))}
-          {FREELANCER_GIGS.length === 0 && <p className="text-gray-500">You have no active gigs.</p>}
+      {/* APPLICANTS MODAL */}
+      {selectedJobId && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-[#1a1b23] border border-white/10 w-full max-w-2xl rounded-xl p-6 max-h-[80vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-white">Applicants</h2>
+                    <button onClick={() => setSelectedJobId(null)} className="text-gray-400 hover:text-white"><X className="w-6 h-6"/></button>
+                </div>
+
+                {loadingApplicants ? <div className="text-center py-10"><Loader2 className="animate-spin mx-auto"/></div> : (
+                    <div className="space-y-4">
+                        {applicants.map((app) => (
+                            <div key={app.id} className="bg-[#0f1014] p-4 rounded-lg border border-white/5">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                                        {app.freelancer_wallet.slice(0, 2)}
+                                    </div>
+                                    <span className="text-sm text-gray-300 font-mono">@{app.freelancer_wallet.slice(0, 6)}...</span>
+                                </div>
+                                
+                                <div className="mb-4">
+                                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Pitch</p>
+                                    <p className="text-gray-300 text-sm">{app.cover_letter}</p>
+                                </div>
+
+                                <div className="mb-4">
+                                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Requirements</p>
+                                    <p className="text-gray-300 text-sm border-l-2 border-[#9945FF] pl-3">{app.requirements_response}</p>
+                                </div>
+
+                                <button 
+                                    onClick={() => handleHire(app.id)}
+                                    className="w-full bg-[#14F195] hover:bg-[#10c479] text-black font-bold py-2 rounded-lg text-sm"
+                                >
+                                    Hire This Freelancer
+                                </button>
+                            </div>
+                        ))}
+                        {applicants.length === 0 && <p className="text-gray-500 text-center py-4">No applicants yet.</p>}
+                    </div>
+                )}
+            </div>
         </div>
       )}
-
-    </div>
-  );
-}
-
-// --- SUB-COMPONENT: Order Card ---
-// This handles the visual logic for each row (Status colors, icons, etc.)
-function OrderCard({ role, title, user, price, status, date }: { 
-  role: 'client' | 'freelancer', 
-  title: string, 
-  user: string, 
-  price: number, 
-  status: 'funded' | 'review' | 'completed',
-  date: string 
-}) {
-  
-  // Visual Logic based on Status
-  let statusConfig = { icon: Lock, color: 'text-gray-400', bg: 'bg-gray-800', text: 'Unknown' };
-  
-  if (status === 'funded') {
-    statusConfig = { icon: Lock, color: 'text-[#14F195]', bg: 'bg-[#14F195]/10 border-[#14F195]/20', text: 'Escrow Funded' };
-  } else if (status === 'review') {
-    statusConfig = { icon: Eye, color: 'text-yellow-500', bg: 'bg-yellow-500/10 border-yellow-500/20', text: 'Review Needed' };
-  } else if (status === 'completed') {
-    statusConfig = { icon: CheckCircle, color: 'text-gray-400', bg: 'bg-gray-800 border-gray-700', text: 'Settled' };
-  }
-
-  const StatusIcon = statusConfig.icon;
-
-  return (
-    <div className={`bg-[#1a1b23] border border-white/5 p-6 rounded-xl flex flex-col md:flex-row justify-between items-center gap-6 hover:border-white/10 transition cursor-pointer ${status === 'completed' ? 'opacity-60' : ''}`}>
-      
-      {/* Left Info */}
-      <div className="flex items-center gap-4 w-full md:w-auto">
-        <div className={`w-12 h-12 bg-[#1e1e24] rounded-lg flex items-center justify-center ${statusConfig.color}`}>
-          <StatusIcon className="w-6 h-6" />
-        </div>
-        <div>
-          <h3 className="font-bold text-white text-lg">{title}</h3>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            {/* Dynamic Label: "Freelancer: @alex" vs "Client: @dao" */}
-            <span>{role === 'client' ? 'Freelancer' : 'Client'}: {user}</span>
-            <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-            <span>{date}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Status Badge */}
-      <div className={`flex items-center gap-3 px-4 py-2 rounded-full border ${statusConfig.bg}`}>
-        {status === 'funded' && <div className="w-2 h-2 rounded-full bg-[#14F195] animate-pulse"></div>}
-        <span className={`${statusConfig.color} text-sm font-semibold uppercase tracking-wider`}>
-          {statusConfig.text}
-        </span>
-      </div>
-
-      {/* Price / Action */}
-      <div className="text-right w-full md:w-auto">
-        {status === 'review' && role === 'client' ? (
-          <button className="bg-white text-black px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-200 transition">
-            Review Work
-          </button>
-        ) : (
-          <div className="text-xl font-bold text-white">{price} USDC</div>
-        )}
-      </div>
 
     </div>
   );

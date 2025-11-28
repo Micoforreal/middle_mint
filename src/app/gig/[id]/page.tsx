@@ -1,28 +1,41 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, ShieldCheck, Calendar, Loader2 } from 'lucide-react';
+import { 
+  ArrowLeft, CheckCircle2, MapPin, ShieldCheck, 
+  Send, Bookmark, Share2, Twitter, Linkedin, 
+  Link as LinkIcon, Calendar, Loader2 
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/supabase';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function JobDetailPage() {
   const params = useParams();
-  // State to hold the single job data
+  const { publicKey } = useWallet();
+  
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Application State
+  const [isApplying, setIsApplying] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [applicationData, setApplicationData] = useState({
+    coverLetter: "",
+    requirementsResponse: ""
+  });
 
+  // Fetch Job Logic
   useEffect(() => {
     const fetchJob = async () => {
       if (!params.id) return;
-
       try {
-        // Fetch the specific row where id matches the URL param
         const { data, error } = await supabase
           .from('jobs')
           .select('*')
           .eq('id', params.id)
-          .single(); // We expect only one result
+          .single();
 
         if (error) throw error;
         setJob(data);
@@ -32,69 +45,56 @@ export default function JobDetailPage() {
         setLoading(false);
       }
     };
-
     fetchJob();
   }, [params.id]);
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white gap-2">
-        <Loader2 className="w-6 h-6 animate-spin" /> Loading job details...
-    </div>
-  );
+  // Handle Application Submit
+  const handleApply = async () => {
+    if (!publicKey) return alert("Please connect wallet first!");
+    if (!applicationData.coverLetter || !applicationData.requirementsResponse) {
+        return alert("Please fill in all fields");
+    }
 
-  if (!job) return (
-    <div className="min-h-screen bg-[#0f1014] flex flex-col items-center justify-center text-gray-500 gap-4">
-        <p>Job not found 😢</p>
-        <Link href="/find" className="text-[#9945FF] hover:underline">Back to Jobs</Link>
-    </div>
-  );
+    setIsSubmitting(true);
+    try {
+        const { error } = await supabase.from('applications').insert([{
+            job_id: job.id,
+            freelancer_wallet: publicKey.toString(),
+            cover_letter: applicationData.coverLetter,
+            requirements_response: applicationData.requirementsResponse,
+            status: 'pending'
+        }]);
+
+        if (error) throw error;
+        
+        alert("Application Sent! The client will review it.");
+        setIsApplying(false); // Close form
+    } catch (err: any) {
+        alert("Error: " + err.message);
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white"><Loader2 className="animate-spin mr-2"/> Loading...</div>;
+  if (!job) return <div className="min-h-screen bg-[#0f1014] flex justify-center items-center text-white">Job not found</div>;
 
   return (
     <div className="min-h-screen p-8 max-w-7xl mx-auto">
-      
-      {/* Back Button */}
       <Link href="/find" className="flex items-center text-gray-400 hover:text-white mb-8 transition text-sm w-fit">
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Jobs
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Jobs
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        
-        {/* LEFT COLUMN: The Job Content */}
+        {/* LEFT COLUMN: Job Content */}
         <div className="lg:col-span-2 space-y-8">
-            
-            {/* Header Info */}
             <div>
-                <div className="flex items-center gap-2 mb-4">
-                    <span className="bg-[#9945FF]/10 text-[#9945FF] border border-[#9945FF]/20 px-3 py-1 rounded-full text-xs font-medium">
-                        {job.category}
-                    </span>
-                    <span className="text-gray-500 text-sm flex items-center gap-1">
-                        <Calendar className="w-3 h-3"/> 
-                        {new Date(job.created_at).toLocaleDateString()}
-                    </span>
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
-                    {job.title}
-                </h1>
-                
-                {/* Client Info Bar */}
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">{job.title}</h1>
                 <div className="flex items-center gap-4 text-sm text-gray-400 border-y border-white/10 py-4">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs uppercase">
-                            {job.client_wallet ? job.client_wallet.slice(0, 2) : 'CL'}
-                        </div>
-                        <div>
-                            <span className="block text-white font-medium">
-                                @{job.client_wallet ? job.client_wallet.slice(0,6) + '...' : 'Unknown'}
-                            </span>
-                            <span className="text-xs">Client</span>
-                        </div>
-                    </div>
+                    <span>Client: @{job.client_wallet.slice(0,6)}...</span>
                 </div>
             </div>
 
-            {/* Description & Requirements */}
             <div className="space-y-6 text-gray-300 leading-relaxed">
                 <h3 className="text-xl font-semibold text-white">Job Description</h3>
                 <p className="whitespace-pre-wrap">{job.description}</p>
@@ -111,7 +111,7 @@ export default function JobDetailPage() {
             </div>
         </div>
 
-        {/* RIGHT COLUMN: Sticky Action Card */}
+        {/* RIGHT COLUMN: Sticky Application Card */}
         <div className="lg:col-span-1 relative">
             <div className="bg-[#1a1b23] border border-white/5 p-6 rounded-xl sticky top-24">
                 
@@ -123,27 +123,57 @@ export default function JobDetailPage() {
                     </div>
                 </div>
 
-                <div className="bg-[#14F195]/5 border border-[#14F195]/20 rounded-lg p-4 mb-6">
-                    <div className="flex gap-3">
-                        <ShieldCheck className="w-5 h-5 text-[#14F195] flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-gray-300 leading-snug">
-                            Payment is <strong>secured in Escrow</strong>. The client deposits funds upfront, and you get paid automatically upon approval.
-                        </p>
+                {!isApplying ? (
+                    // STATE 1: "Apply Now" Button
+                    <div className="space-y-3">
+                        <div className="bg-[#14F195]/5 border border-[#14F195]/20 rounded-lg p-4 mb-6 flex gap-3">
+                            <ShieldCheck className="w-5 h-5 text-[#14F195] flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-gray-300">Payment is <strong>secured in Escrow</strong>.</p>
+                        </div>
+                        <Button 
+                            className="w-full bg-[#14F195] hover:bg-[#10c479] text-black font-bold py-6 text-lg rounded-lg shadow-[0_0_20px_rgba(20,241,149,0.2)]"
+                            onClick={() => setIsApplying(true)}
+                        >
+                            Apply Now
+                        </Button>
                     </div>
-                </div>
+                ) : (
+                    // STATE 2: The Application Form
+                    <div className="space-y-4 animate-in fade-in zoom-in duration-300">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-white font-bold">Your Pitch</h3>
+                            <button onClick={() => setIsApplying(false)} className="text-xs text-gray-500 hover:text-white">Cancel</button>
+                        </div>
+                        
+                        <textarea 
+                            className="w-full h-24 bg-[#0f1014] border border-gray-700 rounded-lg p-3 text-white text-sm focus:border-[#14F195] outline-none"
+                            placeholder="Why are you a good fit?"
+                            value={applicationData.coverLetter}
+                            onChange={(e) => setApplicationData(prev => ({...prev, coverLetter: e.target.value}))}
+                        ></textarea>
 
-                <div className="space-y-3">
-                    <Button 
-                        className="w-full bg-[#14F195] hover:bg-[#10c479] text-black font-bold py-6 text-lg rounded-lg transition-all shadow-[0_0_20px_rgba(20,241,149,0.2)]"
-                        onClick={() => alert("Application logic coming soon!")}
-                    >
-                        Apply Now
-                    </Button>
-                </div>
+                        <div className="bg-[#9945FF]/10 p-3 rounded border border-[#9945FF]/30">
+                            <label className="block text-xs font-bold text-[#9945FF] mb-2 uppercase">Requirements Response</label>
+                            <input 
+                                className="w-full bg-[#0f1014] border border-gray-700 rounded p-2 text-white text-sm focus:border-[#9945FF] outline-none"
+                                placeholder="Paste links/proof here..."
+                                value={applicationData.requirementsResponse}
+                                onChange={(e) => setApplicationData(prev => ({...prev, requirementsResponse: e.target.value}))}
+                            />
+                        </div>
+
+                        <Button 
+                            className="w-full bg-[#14F195] hover:bg-[#10c479] text-black font-bold py-3"
+                            onClick={handleApply}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? <Loader2 className="animate-spin w-4 h-4"/> : "Submit Application"}
+                        </Button>
+                    </div>
+                )}
 
             </div>
         </div>
-
       </div>
     </div>
   );

@@ -4,10 +4,10 @@ import { seedDatabase } from "@/lib/seed";
 
 let initialized = false;
 
-function ensureInitialized() {
+async function ensureInitialized() {
   if (!initialized) {
     try {
-      seedDatabase();
+      await seedDatabase();
       initialized = true;
     } catch (error) {
       console.error("Error initializing database:", error);
@@ -16,7 +16,7 @@ function ensureInitialized() {
 }
 
 export async function GET(request: NextRequest) {
-  ensureInitialized();
+  await ensureInitialized();
 
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -25,21 +25,21 @@ export async function GET(request: NextRequest) {
     const clientWallet = searchParams.get("clientWallet");
 
     if (jobId) {
-      const escrows = escrowsDb.getByJob(jobId);
+      const escrows = await escrowsDb.getByJob(jobId);
       return NextResponse.json(escrows);
     }
 
     if (freelancerWallet) {
-      const escrows = escrowsDb.getByFreelancer(freelancerWallet);
+      const escrows = await escrowsDb.getByFreelancer(freelancerWallet);
       return NextResponse.json(escrows);
     }
 
     if (clientWallet) {
-      const escrows = escrowsDb.getByClient(clientWallet);
+      const escrows = await escrowsDb.getByClient(clientWallet);
       return NextResponse.json(escrows);
     }
 
-    const escrows = escrowsDb.getAll();
+    const escrows = await escrowsDb.getAll();
     return NextResponse.json(escrows);
   } catch (error) {
     console.error("Error fetching escrows:", error);
@@ -51,12 +51,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  ensureInitialized();
+  await ensureInitialized();
 
   try {
     const body = await request.json();
     const now = new Date().toISOString();
-    const escrow = escrowsDb.create({
+    const escrow = await escrowsDb.create({
       id:
         body.id ||
         `escrow-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

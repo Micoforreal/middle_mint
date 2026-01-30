@@ -13,21 +13,21 @@ export async function GET(request: NextRequest) {
     const escrowId = searchParams.get("escrowId");
 
     if (sender) {
-      const streams = streamsDb.getBySender(sender);
+      const streams = await streamsDb.getBySender(sender);
       return NextResponse.json(streams);
     }
 
     if (recipient) {
-      const streams = streamsDb.getByRecipient(recipient);
+      const streams = await streamsDb.getByRecipient(recipient);
       return NextResponse.json(streams);
     }
 
     if (escrowId) {
-      const stream = streamsDb.getByEscrowId(escrowId);
+      const stream = await streamsDb.getByEscrowId(escrowId);
       return NextResponse.json(stream || null);
     }
 
-    const streams = streamsDb.getAll();
+    const streams = await streamsDb.getAll();
     return NextResponse.json(streams);
   } catch (error) {
     console.error("Error fetching streams:", error);
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const now = new Date().toISOString();
 
-    const stream = streamsDb.create({
+    const stream = await streamsDb.create({
       id:
         body.id ||
         `stream-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

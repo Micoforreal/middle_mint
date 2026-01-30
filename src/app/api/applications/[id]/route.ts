@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const app = applicationsDb.getById(id);
+    const app = await applicationsDb.getById(id);
     return NextResponse.json(app || { error: "Not found" }, {
       status: app ? 200 : 404,
     });
@@ -27,7 +27,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const app = applicationsDb.update(id, body);
+    const app = await applicationsDb.update(id, body);
     return NextResponse.json(app || { error: "Not found" }, {
       status: app ? 200 : 404,
     });
@@ -46,7 +46,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const deleted = applicationsDb.delete(id);
+    const deleted = await applicationsDb.delete(id);
     return NextResponse.json({ deleted }, { status: deleted ? 200 : 404 });
   } catch (error) {
     console.error("Error deleting application:", error);

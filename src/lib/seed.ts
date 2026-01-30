@@ -1,13 +1,15 @@
-import { initializeDatabase, getDatabase } from "./db";
+import { initializeDatabase, getCollectionsDB } from "./db";
 import { jobsDb, applicationsDb, freelancerProfilesDb } from "./database";
 
-export function seedDatabase() {
+export async function seedDatabase() {
   // Initialize database first
-  initializeDatabase();
+  await initializeDatabase();
 
   // Check if data already exists
-  const db = getDatabase();
-  if (db.jobs.length > 0) {
+  const { jobs: jobsCollection } = await getCollectionsDB();
+  const existingJobs = await jobsCollection.findOne({});
+
+  if (existingJobs) {
     console.log("✅ Database already seeded. Skipping...");
     return;
   }
@@ -55,9 +57,9 @@ export function seedDatabase() {
     },
   ];
 
-  freelancers.forEach((freelancer) => {
-    freelancerProfilesDb.create(freelancer);
-  });
+  for (const freelancer of freelancers) {
+    await freelancerProfilesDb.create(freelancer);
+  }
 
   // Seed jobs
   const jobs = [
@@ -138,9 +140,9 @@ export function seedDatabase() {
     },
   ];
 
-  jobs.forEach((job) => {
-    jobsDb.create(job);
-  });
+  for (const job of jobs) {
+    await jobsDb.create(job);
+  }
 
   // Seed applications
   const applications = [
@@ -198,9 +200,9 @@ export function seedDatabase() {
     },
   ];
 
-  applications.forEach((app) => {
-    applicationsDb.create(app);
-  });
+  for (const app of applications) {
+    await applicationsDb.create(app);
+  }
 
   console.log("✅ Database seeded successfully!");
 }

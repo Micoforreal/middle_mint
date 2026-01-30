@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const job = jobsDb.getById(id);
+    const job = await jobsDb.getById(id);
     return NextResponse.json(job || { error: "Not found" }, {
       status: job ? 200 : 404,
     });
@@ -24,7 +24,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const job = jobsDb.update(id, body);
+    const job = await jobsDb.update(id, body);
     return NextResponse.json(job || { error: "Not found" }, {
       status: job ? 200 : 404,
     });
@@ -43,7 +43,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const deleted = jobsDb.delete(id);
+    const deleted = await jobsDb.delete(id);
     return NextResponse.json({ deleted }, { status: deleted ? 200 : 404 });
   } catch (error) {
     console.error("Error deleting job:", error);

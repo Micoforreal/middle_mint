@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const stream = streamsDb.getById(id);
+    const stream = await streamsDb.getById(id);
 
     if (!stream) {
       return NextResponse.json({ error: "Stream not found" }, { status: 404 });
@@ -59,7 +59,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const stream = streamsDb.update(id, {
+    const stream = await streamsDb.update(id, {
       ...body,
       updated_at: new Date().toISOString(),
     });
@@ -88,7 +88,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const deleted = streamsDb.delete(id);
+    const deleted = await streamsDb.delete(id);
 
     if (!deleted) {
       return NextResponse.json({ error: "Stream not found" }, { status: 404 });

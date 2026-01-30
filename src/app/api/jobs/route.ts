@@ -5,10 +5,10 @@ import { seedDatabase } from "@/lib/seed";
 // Initialize on first request
 let initialized = false;
 
-function ensureInitialized() {
+async function ensureInitialized() {
   if (!initialized) {
     try {
-      seedDatabase();
+      await seedDatabase();
       initialized = true;
     } catch (error) {
       console.error("Error initializing database:", error);
@@ -17,7 +17,7 @@ function ensureInitialized() {
 }
 
 export async function GET(request: NextRequest) {
-  ensureInitialized();
+  await ensureInitialized();
 
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -25,18 +25,18 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (id) {
-      const job = jobsDb.getById(id);
+      const job = await jobsDb.getById(id);
       return NextResponse.json(job || { error: "Not found" }, {
         status: job ? 200 : 404,
       });
     }
 
     if (clientWallet) {
-      const jobs = jobsDb.getByClient(clientWallet);
+      const jobs = await jobsDb.getByClient(clientWallet);
       return NextResponse.json(jobs);
     }
 
-    const jobs = jobsDb.getAll();
+    const jobs = await jobsDb.getAll();
     return NextResponse.json(jobs);
   } catch (error) {
     console.error("Error fetching jobs:", error);
@@ -48,12 +48,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  ensureInitialized();
+  await ensureInitialized();
 
   try {
     const body = await request.json();
     const now = new Date().toISOString();
-    const job = jobsDb.create({
+    const job = await jobsDb.create({
       id:
         body.id ||
         `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

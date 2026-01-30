@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const escrow = escrowsDb.getById(id);
+    const escrow = await escrowsDb.getById(id);
     if (!escrow) {
       return NextResponse.json({ error: "Escrow not found" }, { status: 404 });
     }
@@ -28,7 +28,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const escrow = escrowsDb.update(id, body);
+    const escrow = await escrowsDb.update(id, body);
     if (!escrow) {
       return NextResponse.json({ error: "Escrow not found" }, { status: 404 });
     }
@@ -48,7 +48,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    escrowsDb.delete(id);
+    await escrowsDb.delete(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting escrow:", error);

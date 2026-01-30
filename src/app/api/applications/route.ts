@@ -8,16 +8,16 @@ export async function GET(request: NextRequest) {
     const freelancerWallet = searchParams.get("freelancerWallet");
 
     if (jobId) {
-      const apps = applicationsDb.getByJob(jobId);
+      const apps = await applicationsDb.getByJob(jobId);
       return NextResponse.json(apps);
     }
 
     if (freelancerWallet) {
-      const apps = applicationsDb.getByFreelancer(freelancerWallet);
+      const apps = await applicationsDb.getByFreelancer(freelancerWallet);
       return NextResponse.json(apps);
     }
 
-    const apps = applicationsDb.getAll();
+    const apps = await applicationsDb.getAll();
     return NextResponse.json(apps);
   } catch (error) {
     console.error("Error fetching applications:", error);
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const now = new Date().toISOString();
-    const app = applicationsDb.create({
+    const app = await applicationsDb.create({
       id:
         body.id ||
         `app-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

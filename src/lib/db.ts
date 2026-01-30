@@ -1,12 +1,9 @@
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs";
+import fs from 'fs';
+import path from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, "../../middlemint.json");
+const dbPath = path.join(process.cwd(), 'middlemint.json');
 
-export interface DBData {
+interface DBData {
   jobs: any[];
   applications: any[];
   escrows: any[];
@@ -14,49 +11,71 @@ export interface DBData {
   streams: any[];
 }
 
-let dbInstance: DBData | null = null;
+let dbCache: DBData | null = null;
 
-export function getDatabase(): DBData {
-  if (!dbInstance) {
-    initializeDatabase();
+function loadDatabase(): DBData {
+  if (dbCache) return dbCache;
+  
+  try {
+    if (fs.existsSync(dbPath)) {
+      const data = fs.readFileSync(dbPath, 'utf-8');
+      dbCache = JSON.parse(data);
+      console.log('✅ Loaded database from file');
+      return dbCache as DBData;
+    }
+  } catch (error) {
+    console.error('Error loading database:', error);
   }
-  return dbInstance!;
+
+  // Return empty database
+  dbCache = {
+    jobs: [],
+    applications: [],
+    escrows: [],
+    freelancer_profiles: [],
+    streams: []
+  };
+  return dbCache;
+}
+
+function saveDatabase(data: DBData) {
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf-8');
+    console.log('✅ Database saved to file');
+  } catch (error) {
+    console.error('Error saving database:', error);
+  }
 }
 
 export function initializeDatabase() {
-  try {
-    // Try to load existing database
-    if (fs.existsSync(dbPath)) {
-      const data = fs.readFileSync(dbPath, "utf-8");
-      dbInstance = JSON.parse(data);
-    } else {
-      // Create empty database
-      dbInstance = {
-        jobs: [],
-        applications: [],
-        escrows: [],
-        freelancer_profiles: [],
-        streams: [],
-      };
-      saveDatabase();
-    }
-  } catch (error) {
-    console.error("Error loading database:", error);
-    dbInstance = {
-      jobs: [],
-      applications: [],
-      escrows: [],
-      freelancer_profiles: [],
-      streams: [],
-    };
+  console.log('✅ Initializing database at:', dbPath);
+  loadDatabase();
+  console.log('✅ Database initialized');
+}
+
+export function getDatabase(): DBData {
+  return loadDatabase();
+}
+
+export function saveDB() {
+  if (dbCache) {
+    saveDatabase(dbCache);
   }
 }
 
-export function saveDatabase() {
-  try {
-    if (!dbInstance) return;
-    fs.writeFileSync(dbPath, JSON.stringify(dbInstance, null, 2), "utf-8");
-  } catch (error) {
-    console.error("Error saving database:", error);
-  }
+export function getDB() {
+  return loadDatabase();
+}
+
+export function getDatabasePath(): string {
+  return dbPath;
+}
+
+// Helper functions
+export async function queryDB(sql: string, params: any[] = []): Promise<any[]> {
+  return [];
+}
+
+export async function runDB(sql: string, params: any[] = []): Promise<void> {
+  // no-op
 }

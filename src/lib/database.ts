@@ -1,16 +1,22 @@
-import { getDatabase, saveDatabase, DBData } from './db';
+import { getDatabase, saveDatabase, DBData } from "./db";
 
 // Types
 export interface Job {
   id: string;
   title: string;
   description: string;
-  category: 'Dev' | 'Smart Contract' | 'Writing' | 'Marketing' | 'Design' | 'Audit';
+  category:
+    | "Dev"
+    | "Smart Contract"
+    | "Writing"
+    | "Marketing"
+    | "Design"
+    | "Audit";
   budget: number;
   client_wallet: string;
   client_name: string;
   requirements: string;
-  status: 'open' | 'in-progress' | 'completed';
+  status: "open" | "in-progress" | "completed";
   created_at: string;
   updated_at: string;
 }
@@ -22,7 +28,13 @@ export interface Application {
   freelancer_name: string;
   cover_letter: string;
   requirements_response: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'in-progress' | 'submitted' | 'completed';
+  status:
+    | "pending"
+    | "accepted"
+    | "rejected"
+    | "in-progress"
+    | "submitted"
+    | "completed";
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +46,7 @@ export interface Escrow {
   client_wallet: string;
   freelancer_wallet: string;
   amount: number;
-  status: 'pending' | 'funded' | 'work-submitted' | 'released' | 'disputed';
+  status: "pending" | "funded" | "work-submitted" | "released" | "disputed";
   transaction_signature: string | null;
   work_submission_link: string | null;
   work_submission_proof: string | null;
@@ -70,19 +82,23 @@ export const jobsDb = {
 
   getById: (id: string): Job | undefined => {
     const db = getDatabase();
-    return db.jobs.find(j => j.id === id);
+    return db.jobs.find((j) => j.id === id);
   },
 
   getByClient: (clientWallet: string): Job[] => {
     const db = getDatabase();
-    return db.jobs.filter(j => j.client_wallet === clientWallet);
+    return db.jobs.filter((j) => j.client_wallet === clientWallet);
   },
 
   update: (id: string, updates: Partial<Job>): Job | undefined => {
     const db = getDatabase();
-    const index = db.jobs.findIndex(j => j.id === id);
+    const index = db.jobs.findIndex((j) => j.id === id);
     if (index !== -1) {
-      db.jobs[index] = { ...db.jobs[index], ...updates, updated_at: new Date().toISOString() };
+      db.jobs[index] = {
+        ...db.jobs[index],
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
       saveDatabase();
       return db.jobs[index];
     }
@@ -91,7 +107,7 @@ export const jobsDb = {
 
   delete: (id: string): boolean => {
     const db = getDatabase();
-    const index = db.jobs.findIndex(j => j.id === id);
+    const index = db.jobs.findIndex((j) => j.id === id);
     if (index !== -1) {
       db.jobs.splice(index, 1);
       saveDatabase();
@@ -117,24 +133,33 @@ export const applicationsDb = {
 
   getById: (id: string): Application | undefined => {
     const db = getDatabase();
-    return db.applications.find(a => a.id === id);
+    return db.applications.find((a) => a.id === id);
   },
 
   getByJob: (jobId: string): Application[] => {
     const db = getDatabase();
-    return db.applications.filter(a => a.job_id === jobId);
+    return db.applications.filter((a) => a.job_id === jobId);
   },
 
   getByFreelancer: (freelancerWallet: string): Application[] => {
     const db = getDatabase();
-    return db.applications.filter(a => a.freelancer_wallet === freelancerWallet);
+    return db.applications.filter(
+      (a) => a.freelancer_wallet === freelancerWallet,
+    );
   },
 
-  update: (id: string, updates: Partial<Application>): Application | undefined => {
+  update: (
+    id: string,
+    updates: Partial<Application>,
+  ): Application | undefined => {
     const db = getDatabase();
-    const index = db.applications.findIndex(a => a.id === id);
+    const index = db.applications.findIndex((a) => a.id === id);
     if (index !== -1) {
-      db.applications[index] = { ...db.applications[index], ...updates, updated_at: new Date().toISOString() };
+      db.applications[index] = {
+        ...db.applications[index],
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
       saveDatabase();
       return db.applications[index];
     }
@@ -143,7 +168,7 @@ export const applicationsDb = {
 
   delete: (id: string): boolean => {
     const db = getDatabase();
-    const index = db.applications.findIndex(a => a.id === id);
+    const index = db.applications.findIndex((a) => a.id === id);
     if (index !== -1) {
       db.applications.splice(index, 1);
       saveDatabase();
@@ -169,29 +194,33 @@ export const escrowsDb = {
 
   getById: (id: string): Escrow | undefined => {
     const db = getDatabase();
-    return db.escrows.find(e => e.id === id);
+    return db.escrows.find((e) => e.id === id);
   },
 
   getByJob: (jobId: string): Escrow[] => {
     const db = getDatabase();
-    return db.escrows.filter(e => e.job_id === jobId);
+    return db.escrows.filter((e) => e.job_id === jobId);
   },
 
   getByFreelancer: (freelancerWallet: string): Escrow[] => {
     const db = getDatabase();
-    return db.escrows.filter(e => e.freelancer_wallet === freelancerWallet);
+    return db.escrows.filter((e) => e.freelancer_wallet === freelancerWallet);
   },
 
   getByClient: (clientWallet: string): Escrow[] => {
     const db = getDatabase();
-    return db.escrows.filter(e => e.client_wallet === clientWallet);
+    return db.escrows.filter((e) => e.client_wallet === clientWallet);
   },
 
   update: (id: string, updates: Partial<Escrow>): Escrow | undefined => {
     const db = getDatabase();
-    const index = db.escrows.findIndex(e => e.id === id);
+    const index = db.escrows.findIndex((e) => e.id === id);
     if (index !== -1) {
-      db.escrows[index] = { ...db.escrows[index], ...updates, updated_at: new Date().toISOString() };
+      db.escrows[index] = {
+        ...db.escrows[index],
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
       saveDatabase();
       return db.escrows[index];
     }
@@ -200,7 +229,7 @@ export const escrowsDb = {
 
   delete: (id: string): boolean => {
     const db = getDatabase();
-    const index = db.escrows.findIndex(e => e.id === id);
+    const index = db.escrows.findIndex((e) => e.id === id);
     if (index !== -1) {
       db.escrows.splice(index, 1);
       saveDatabase();
@@ -226,19 +255,25 @@ export const freelancerProfilesDb = {
 
   getById: (id: string): FreelancerProfile | undefined => {
     const db = getDatabase();
-    return db.freelancer_profiles.find(f => f.id === id);
+    return db.freelancer_profiles.find((f) => f.id === id);
   },
 
   getByWallet: (wallet: string): FreelancerProfile | undefined => {
     const db = getDatabase();
-    return db.freelancer_profiles.find(f => f.wallet === wallet);
+    return db.freelancer_profiles.find((f) => f.wallet === wallet);
   },
 
-  update: (id: string, updates: Partial<FreelancerProfile>): FreelancerProfile | undefined => {
+  update: (
+    id: string,
+    updates: Partial<FreelancerProfile>,
+  ): FreelancerProfile | undefined => {
     const db = getDatabase();
-    const index = db.freelancer_profiles.findIndex(f => f.id === id);
+    const index = db.freelancer_profiles.findIndex((f) => f.id === id);
     if (index !== -1) {
-      db.freelancer_profiles[index] = { ...db.freelancer_profiles[index], ...updates };
+      db.freelancer_profiles[index] = {
+        ...db.freelancer_profiles[index],
+        ...updates,
+      };
       saveDatabase();
       return db.freelancer_profiles[index];
     }
@@ -247,9 +282,89 @@ export const freelancerProfilesDb = {
 
   delete: (id: string): boolean => {
     const db = getDatabase();
-    const index = db.freelancer_profiles.findIndex(f => f.id === id);
+    const index = db.freelancer_profiles.findIndex((f) => f.id === id);
     if (index !== -1) {
       db.freelancer_profiles.splice(index, 1);
+      saveDatabase();
+      return true;
+    }
+    return false;
+  },
+};
+
+// STREAMS DATABASE (for Streamflow escrows)
+export interface StreamRecord {
+  id: string;
+  escrow_id: string;
+  sender: string;
+  recipient: string;
+  mint: string;
+  amount: number;
+  start_time: number;
+  end_time: number;
+  withdrawn: number;
+  status: "active" | "paused" | "completed" | "cancelled";
+  transaction_hash: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const streamsDb = {
+  create: (stream: StreamRecord): StreamRecord => {
+    const db = getDatabase();
+    db.streams.push(stream);
+    saveDatabase();
+    return stream;
+  },
+
+  getAll: (): StreamRecord[] => {
+    const db = getDatabase();
+    return db.streams;
+  },
+
+  getById: (id: string): StreamRecord | undefined => {
+    const db = getDatabase();
+    return db.streams.find((s) => s.id === id);
+  },
+
+  getByEscrowId: (escrowId: string): StreamRecord | undefined => {
+    const db = getDatabase();
+    return db.streams.find((s) => s.escrow_id === escrowId);
+  },
+
+  getBySender: (sender: string): StreamRecord[] => {
+    const db = getDatabase();
+    return db.streams.filter((s) => s.sender === sender);
+  },
+
+  getByRecipient: (recipient: string): StreamRecord[] => {
+    const db = getDatabase();
+    return db.streams.filter((s) => s.recipient === recipient);
+  },
+
+  update: (
+    id: string,
+    updates: Partial<StreamRecord>,
+  ): StreamRecord | undefined => {
+    const db = getDatabase();
+    const index = db.streams.findIndex((s) => s.id === id);
+    if (index !== -1) {
+      db.streams[index] = {
+        ...db.streams[index],
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
+      saveDatabase();
+      return db.streams[index];
+    }
+    return undefined;
+  },
+
+  delete: (id: string): boolean => {
+    const db = getDatabase();
+    const index = db.streams.findIndex((s) => s.id === id);
+    if (index !== -1) {
+      db.streams.splice(index, 1);
       saveDatabase();
       return true;
     }

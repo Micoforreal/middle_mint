@@ -6,6 +6,7 @@ import { ListChecks, AlertTriangle } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Loader2 } from "lucide-react";
+import { toast } from 'react-toastify';
 
 const Post = () => {
     const router = useRouter();
@@ -29,8 +30,8 @@ const Post = () => {
 
 
     const handleSubmitted = async () => {
-        if (!publicKey) return alert("Please connect your wallet");
-        if (!formData.title || !formData.budget) return alert("Please provide the title and budget");
+        if (!publicKey) return toast.error("Please connect your wallet");
+        if (!formData.title || !formData.budget) return toast.error("Please provide the title and budget");
         setIsSubmitting(true);
 
         try {
@@ -51,12 +52,12 @@ const Post = () => {
 
             if (!response.ok) throw new Error('Failed to post job');
 
-            alert("Job posted successfully!");
+            toast.success("Job posted successfully!");
             router.push('/dashboard');
 
         } catch (error: any) {
             console.error("Error", error);
-            alert("Error posting job: " + error.message);
+            toast.error("Error posting job: " + error.message);
         } finally {
             setIsSubmitting(false);
         }

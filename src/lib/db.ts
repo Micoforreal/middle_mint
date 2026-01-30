@@ -11,6 +11,7 @@ export interface DBData {
   applications: any[];
   escrows: any[];
   freelancer_profiles: any[];
+  streams: any[];
 }
 
 let dbInstance: DBData | null = null;
@@ -35,6 +36,7 @@ export function initializeDatabase() {
         applications: [],
         escrows: [],
         freelancer_profiles: [],
+        streams: [],
       };
       saveDatabase();
     }
@@ -45,6 +47,7 @@ export function initializeDatabase() {
       applications: [],
       escrows: [],
       freelancer_profiles: [],
+      streams: [],
     };
   }
 }

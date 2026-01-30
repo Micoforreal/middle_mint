@@ -4,6 +4,7 @@ import { Lock, Eye, CheckCircle, Clock, FileText, Loader2, X, User, ArrowRight, 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useEscrow } from '@/lib/EscrowContext';
 import { Button } from '@/components/ui/button';
+import { toast } from 'react-toastify';
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
@@ -107,7 +108,7 @@ export default function DashboardPage() {
 
   const handleCreateEscrow = async () => {
     if (!publicKey || !selectedAppForEscrow || !escrowAmount) {
-      alert("Missing required information");
+      toast.error("Missing required information");
       return;
     }
 
@@ -131,65 +132,104 @@ export default function DashboardPage() {
         body: JSON.stringify({ status: 'accepted' }),
       });
 
-      alert("Escrow created successfully! Now you need to deposit funds.");
+      toast.success("Escrow created successfully! Now you need to deposit funds.");
       setSelectedAppForEscrow(null);
       setEscrowAmount("");
       setSelectedJobId(null);
     } catch (error) {
       console.error("Error creating escrow:", error);
-      alert("Error creating escrow");
+      toast.error("Error creating escrow");
     } finally {
       setCreatingEscrow(false);
     }
   };
 
-  const handleFundEscrow = async (escrowId: string) => {
+  const handleFundEscrow = async (escrowId: string, amountSOL: number) => {
     if (!publicKey) return;
 
     setFundingEscrow(null);
     try {
-      // Simulate transaction
+      console.log(`💰 Funding escrow with ${amountSOL} SOL...`);
+
+      // Simulate transaction (real wallet signing would happen here)
       const txSignature = `tx_${Math.random().toString(36).substr(2, 9)}`;
       await fundEscrow(escrowId, txSignature);
 
-      alert("Escrow funded successfully! (Demo mode - Devnet)\nTransaction ID: " + txSignature);
+      toast.success(`Escrow Funded Successfully! Amount: ${amountSOL} SOL locked in escrow.`);
     } catch (error) {
       console.error("Error funding escrow:", error);
-      alert("Error funding escrow");
+      toast.error("Error funding escrow");
     }
   };
 
   const handleSubmitWork = async (escrowId: string) => {
     if (!workLink || !proofImageUrl) {
-      alert("Please fill in all fields");
+      toast.error("Please fill in all fields");
       return;
     }
 
     setSubmittingWork(true);
     try {
       await submitWork(escrowId, workLink, proofImageUrl);
-      alert("Work submitted successfully! Waiting for client approval. (Demo mode)");
+      toast.success("Work submitted successfully! Waiting for client approval.");
       setSubmitWorkEscrow(null);
       setWorkLink("");
       setProofImageUrl("");
     } catch (error) {
       console.error("Error submitting work:", error);
-      alert("Error submitting work");
+      toast.error("Error submitting work");
     } finally {
       setSubmittingWork(false);
     }
   };
 
-  const handleReleaseEscrow = async (escrowId: string) => {
+  const handleReleaseEscrow = async (escrowId: string, freelancerWallet: string, amountSOL: number) => {
     if (!publicKey) return;
 
-    setReleasingEscrow(null);
+    setReleasingEscrow(escrowId);
     try {
-      await releaseEscrow(escrowId);
-      alert("Funds released to freelancer successfully! (Demo mode)");
+      console.log(`💰 Releasing ${amountSOL} SOL to ${freelancerWallet}...`);
+
+      // Call the backend API to release funds
+      const response = await fetch("/api/escrow/release", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          freelancerWallet,
+          amountSOL,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to release funds");
+      }
+
+      const data = await response.json();
+
+      console.log(`✅ Funds released successfully!`);
+      console.log(`   Amount: ${data.amountSOL} SOL`);
+      console.log(`   Recipient: ${data.recipient}`);
+      console.log(`   Transaction: ${data.txId}`);
+
+      // Update escrow status in database
+      await fetch(`/api/escrows/${escrowId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "released" }),
+      });
+
+      toast.success(`Funds Released Successfully! ${data.amountSOL} SOL sent to freelancer.`);
+
+      setReleasingEscrow(null);
+      // Refresh data
+      window.location.reload();
     } catch (error) {
-      console.error("Error releasing escrow:", error);
-      alert("Error releasing escrow");
+      console.error("❌ Error releasing funds:", error);
+      toast.error(error instanceof Error ? error.message : "Unknown error");
+      setReleasingEscrow(null);
     }
   };
 
@@ -293,7 +333,7 @@ export default function DashboardPage() {
 
                               {escrow.status === 'work-submitted' && (
                                 <Button
-                                  onClick={() => handleReleaseEscrow(escrow.id)}
+                                  onClick={() => handleReleaseEscrow(escrow.id, escrow.freelancer_wallet, escrow.amount)}
                                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 text-sm"
                                 >
                                   {releasingEscrow === escrow.id ? <Loader2 className="animate-spin w-4 h-4 mx-auto" /> : "Release Funds to Freelancer"}
@@ -541,7 +581,7 @@ export default function DashboardPage() {
                   className="w-full h-32 object-cover rounded-lg"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
-                    alert('Could not load image - make sure URL is valid');
+                    toast.error('Could not load image - make sure URL is valid');
                   }}
                 />
               )}

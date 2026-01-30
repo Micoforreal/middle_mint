@@ -8,6 +8,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { toast } from 'react-toastify';
 
 export default function JobDetailPage() {
     const params = useParams();
@@ -58,9 +59,9 @@ export default function JobDetailPage() {
 
     // Handle Application Submit
     const handleApply = async () => {
-        if (!publicKey) return alert("Please connect wallet first!");
+        if (!publicKey) return toast.error("Please connect wallet first!");
         if (!applicationData.coverLetter || !applicationData.requirementsResponse) {
-            return alert("Please fill in all fields");
+            return toast.error("Please fill in all fields");
         }
 
         setIsSubmitting(true);
@@ -80,12 +81,12 @@ export default function JobDetailPage() {
 
             if (!response.ok) throw new Error('Failed to submit application');
 
-            alert("Application Sent! The client will review it.");
+            toast.success("Application Sent! The client will review it.");
             setIsApplying(false);
             setHasApplied(true);
             setApplicationData({ coverLetter: "", requirementsResponse: "" });
         } catch (err: any) {
-            alert("Error: " + err.message);
+            toast.error("Error: " + err.message);
         } finally {
             setIsSubmitting(false);
         }
